@@ -13,29 +13,7 @@ jobs:
       - name: Descompactar
         run: unzip -q coder-android.zip
       - name: Buscar proot e Debian
-        run: |
-          set -e
-          P=$GITHUB_WORKSPACE/coder-android
-          J=$P/app/src/main/jniLibs/arm64-v8a
-          mkdir -p $J /tmp/w && cd /tmp/w
-          T=https://packages.termux.dev/apt/termux-main/pool/main
-          get() {
-            f=$(curl -s $T/$1/ | grep -o 'href="[^"]*aarch64\.deb"' | sed 's/href="//;s/"//' | sort -V | tail -1)
-            [ -n "$f" ] || { echo "pacote nao encontrado: $1"; exit 1; }
-            curl -sLO "$T/$1/$f"; ar x "$f"; mkdir -p "$2"
-            tar xf data.tar.* -C "$2"; rm -f data.tar.* control.tar.* debian-binary
-          }
-          get p/proot proot
-          get libt/libtalloc talloc
-          cp "$(find proot -path '*/bin/proot')" $J/libproot.so
-          cp "$(find proot -path '*/libexec/proot/loader')" $J/libproot-loader.so
-          cp "$(find talloc -name 'libtalloc.so.2*' -type f | head -1)" $J/libtalloc.so
-          U=$(curl -s "https://api.github.com/repos/termux/proot-distro/releases?per_page=40" | jq -r '[.[].assets[]|select(.name|test("^debian-.*aarch64.*tar\\.xz$"))|select(.name|test("oldstable")|not)][0].browser_download_url')
-          echo "Rootfs: $U"
-          [ -n "$U" ] && [ "$U" != null ]
-          curl -sL "$U" -o r.tar.xz
-          if tar -tf r.tar.xz | head -100 | grep -qE '^(\./)?(usr|bin|etc)/'; then S=0; else S=1; fi
-          sed -i "s|^const val ROOTFS_URL = .*|const val ROOTFS_URL = \"$U\"|;s|^const val STRIP = .*|const val STRIP = $S|" $P/app/src/main/java/dev/coder/MainActivity.kt
+        run: bash coder-android/fetch.sh
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
